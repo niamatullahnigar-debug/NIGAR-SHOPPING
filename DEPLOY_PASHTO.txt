@@ -1,0 +1,34 @@
+NIGAR SHOPPING — د آنلاین دوکان فایلونه
+=====================================
+
+دا ZIP د Netlify لپاره برابر شوی. فایلونه په ZIP کې په اصلي/root ځای کې دي، نو index.html به د سایټ مخ وي.
+
+مهم: ستاسو د محصولاتو معلومات په Supabase ډیټابېس کې ساتل کېږي؛ دا ZIP ستاسو موجود محصولات نه حذفوي او محصولات په ZIP کې نه ساتل کېږي.
+
+۱) د ZIP خلاصول
+- په iPhone کې ZIP په Files اپ کې خلاص/Extract کړئ، یا په کمپیوټر کې Extract وکړئ.
+- د فولډر دننه باید index.html، admin.html، checkout.html، app.js، config.js، styles.css او netlify.toml ووینئ.
+
+۲) Netlify ته خپرول
+- Netlify ته ننوځئ او د خپل سایټ Dashboard خلاص کړئ.
+- د Deploys برخه پیدا کړئ.
+- د دې ZIP محتویات Extract کړئ او د فولډر ټول فایلونه یوځای د Netlify د manual deploy/upload ځای ته ورکړئ؛ یوازې index.html مه پورته کوئ.
+- که Netlify د ZIP مستقیم upload نه مني، لومړی یې Extract کړئ او د Extract شوي فولډر دننه ټول فایلونه upload کړئ.
+- تر Deploy وروسته د Netlify جوړ شوی public URL خلاص کړئ او د محصولات، کارټ او Checkout ازموینه وکړئ.
+
+۳) Supabase اتصال
+- config.js کې د موجود Supabase Project URL او Publishable key تنظیمات شته. Publishable key د ویب پاڼې لپاره ده؛ Secret/Service Role key هېڅکله په دې فایل کې مه اچوئ.
+- ستاسو د پخواني کار له مخې products، orders او profiles جدولونه او محصولات لا موجود دي. د database.sql فایل بیا مه چلوئ، تر څو ډاډه نه شئ چې کوم جدول یا policy واقعاً نشته؛ دا فایل یوازې د مرجع/نوي نصب لپاره دی.
+- د عکسونو upload لپاره په Supabase Storage کې د product-images په نوم public bucket او Admin policies باید موجود وي.
+- د Admin پاڼه: د خپل سایټ URL په پای کې /admin.html ولیکئ. د خپل Supabase Admin ایمیل او پاسورډ سره ننوځئ.
+
+۴) د ازموینې چک لېسټ
+- اصلي سایټ خلاص کړئ او وګورئ چې پخواني محصولات ښکاري.
+- یو محصول کارټ ته واچوئ، Checkout خلاص کړئ او د ازموینې فرمایش ثبت کړئ.
+- /admin.html خلاص کړئ؛ Admin login، د محصول اضافه/بدلون/حذف، عکس upload او د فرمایش حالت بدلول وازمویئ.
+- که محصولات نه ښکاري یا د عکس upload/فرمایش خطا ورکوي، د خطا متن وساتئ؛ دا عموماً د Supabase RLS policy یا Storage تنظیم دی، نه د ZIP د خلاصولو ستونزه.
+
+۵) مهم یادښتونه
+- د مشتریانو لپاره عامه سایټ او د Admin پاڼه دواړه د همدې deployment برخه دي.
+- دا نسخه د فرمایشونو ثبت او د سپارلو پر وخت د پیسو اخیستلو لپاره ده؛ آنلاین کارت/بانکي تادیات پکې نه دي نښلول شوي.
+- د محصولاتو اصلي معلومات په Supabase کې دي، نو د ویب پاڼې نوې deployment باید یې له منځه یونه سي.

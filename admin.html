@@ -1,0 +1,48 @@
+<!doctype html><html lang="ps" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin - NIGAR</title><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script></head><body>
+<header><a class="brand" href="index.html">NIGAR <span>ADMIN</span></a><button id="logoutBtn" class="cartBtn hidden" onclick="logout()">Logout</button></header>
+<section><div id="loginBox" class="modalBox"><p class="eyebrow">ADMIN LOGIN</p><h1>Admin Login</h1><div class="field"><label>Email</label><input id="email" class="forminput" type="email" autocomplete="username" placeholder="Email"></div><div class="field"><label>Password</label><input id="password" class="forminput" type="password" autocomplete="current-password" placeholder="Password"></div><button class="primary wide" onclick="login()">Login</button><p id="loginMsg"></p></div>
+<div id="dashboard" class="hidden"><div class="sectionHead"><div><p class="eyebrow">NIGAR ADMIN</p><h1>د دوکان اداره</h1><p id="adminEmail" class="muted"></p></div><button class="primary" onclick="newProduct()">+ نوی محصول</button></div><div id="productList" class="grid adminGrid"></div><h2 style="margin-top:35px">فرمایشونه</h2><div id="orders"></div></div></section>
+<div id="editor" class="modal hidden"><div class="modalBox"><button class="close" onclick="closeEditor()">×</button><h2 id="editorTitle">نوی محصول</h2><input id="pid" type="hidden"><div class="field"><label>د محصول نوم</label><input id="pname" class="forminput" placeholder="د محصول نوم"></div><div class="field"><label>کټګوري</label><input id="pcat" class="forminput" placeholder="کتابچې"></div><div class="field"><label>بیه (افغانی)</label><input id="pprice" class="forminput" type="number" min="0" step="0.01"></div><div class="field"><label>موجودي</label><input id="pstock" class="forminput" type="number" min="0"></div><div class="field"><label>تشریح</label><textarea id="pdesc" class="forminput" rows="4"></textarea></div><div class="field"><label>د محصول عکس</label><input id="pfile" class="forminput" type="file" accept="image/*" onchange="previewImage()"><img id="preview" class="imagePreview hidden"></div><button class="primary wide" onclick="saveProduct()">Save</button><p id="saveMsg"></p></div></div>
+<script>
+const sb=supabase.createClient(NIGAR_CONFIG.SUPABASE_URL,NIGAR_CONFIG.SUPABASE_PUBLISHABLE_KEY);
+let adminUser=null,editing=null,currentImagePath=null;
+const $=id=>document.getElementById(id);
+async function init(){const {data}=await sb.auth.getSession();if(data.session)await ensureAdmin(data.session.user);sb.auth.onAuthStateChange((_e,s)=>{if(s)ensureAdmin(s.user);else showLogin()})}
+async function ensureAdmin(user){const {data,error}=await sb.from("profiles").select("role").eq("id",user.id).single();if(error||!data||data.role!=="admin"){await sb.auth.signOut();$("loginMsg").textContent="دا حساب Admin نه دی.";return}adminUser=user;$("loginBox").classList.add("hidden");$("dashboard").classList.remove("hidden");$("logoutBtn").classList.remove("hidden");$("adminEmail").textContent=user.email||"";await loadAdminProducts();await loadOrders()}
+function showLogin(){$("loginBox").classList.remove("hidden");$("dashboard").classList.add("hidden");$("logoutBtn").classList.add("hidden")}
+async function login(){const {error}=await sb.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});$("loginMsg").textContent=error?error.message:"";if(!error){await new Promise(r=>setTimeout(r,250));}}
+async function logout(){await sb.auth.signOut();location.reload()}
+async function loadAdminProducts(){const {data,error}=await sb.from("products").select("*").order("created_at",{ascending:false});if(error){$("productList").innerHTML="<p>"+esc(error.message)+"</p>";return}$("productList").innerHTML=(data||[]).map(p=>`<article class="product"><div class="pic">${p.image_url?`<img src="${esc(p.image_url)}" alt="">`:"📦"}</div><div class="body"><small>${esc(p.category)}</small><h3>${esc(p.name)}</h3><div class="price">${Number(p.price).toLocaleString()} افغانی</div><p>موجودي: ${p.stock}</p><p>${esc(p.description||"")}</p><div class="actions"><button onclick='editProduct(${JSON.stringify(p).replace(/'/g,"&#39;")})'>✏️ Edit</button><button class="danger" onclick="deleteProduct('${p.id}')">🗑️ Delete</button></div></div></article>`).join("")||"<p>تر اوسه محصول نشته.</p>"}
+function newProduct(){editing=null;currentImagePath=null;$("editorTitle").textContent="نوی محصول";["pid","pname","pcat","pprice","pstock","pdesc"].forEach(id=>$(id).value="");$("pfile").value="";$("preview").classList.add("hidden");$("saveMsg").textContent="";$("editor").classList.remove("hidden")}
+function editProduct(p){editing=p;currentImagePath=p.image_path||null;$("editorTitle").textContent="محصول بدلول";$("pid").value=p.id;$("pname").value=p.name;$("pcat").value=p.category;$("pprice").value=p.price;$("pstock").value=p.stock;$("pdesc").value=p.description||"";$("pfile").value="";$("preview").src=p.image_url||"";$("preview").classList.toggle("hidden",!p.image_url);$("saveMsg").textContent="";$("editor").classList.remove("hidden")}
+function previewImage(){const f=$("pfile").files[0];if(!f)return;const r=new FileReader();r.onload=e=>{$("preview").src=e.target.result;$("preview").classList.remove("hidden")};r.readAsDataURL(f)}
+async function saveProduct(){
+ $("saveMsg").textContent="Saving...";
+ const name=$("pname").value.trim(),category=$("pcat").value.trim(),price=Number($("pprice").value),stock=Number($("pstock").value),description=$("pdesc").value.trim();
+ if(!name||!category||!Number.isFinite(price)||price<0||!Number.isInteger(stock)||stock<0){$("saveMsg").textContent="نوم، کټګوري، بیه او موجودي سم ولیکئ.";return}
+ let image_url=editing?.image_url||null,image_path=currentImagePath;
+ const file=$("pfile").files[0];
+ if(file){
+   const safe=file.name.toLowerCase().replace(/[^a-z0-9._-]/g,"-");
+   const path=`${crypto.randomUUID()}-${safe}`;
+   const up=await sb.storage.from("product-images").upload(path,file,{upsert:false,contentType:file.type});
+   if(up.error){$("saveMsg").textContent="د عکس Upload ناکام شو: "+up.error.message;return}
+   image_path=path;
+   const pub=sb.storage.from("product-images").getPublicUrl(path); image_url=pub.data.publicUrl;
+ }
+ const payload={name,category,price,stock,description,image_url,image_path,active:true};
+ let result;
+ if(editing)result=await sb.from("products").update(payload).eq("id",editing.id);
+ else result=await sb.from("products").insert(payload);
+ if(result.error){$("saveMsg").textContent=result.error.message;return}
+ if(editing&&file&&editing.image_path&&editing.image_path!==image_path)await sb.storage.from("product-images").remove([editing.image_path]);
+ closeEditor();await loadAdminProducts();toast("محصول خوندي شو ✅");
+}
+async function deleteProduct(id){if(!confirm("ایا دا محصول حذف شي؟"))return;const p=await sb.from("products").select("image_path").eq("id",id).single();const r=await sb.from("products").delete().eq("id",id);if(r.error){alert(r.error.message);return}if(p.data?.image_path)await sb.storage.from("product-images").remove([p.data.image_path]);await loadAdminProducts();toast("محصول حذف شو")}
+function closeEditor(){$("editor").classList.add("hidden")}
+async function loadOrders(){const {data,error}=await sb.from("orders").select("*").order("created_at",{ascending:false});if(error){$("orders").innerHTML="<p>"+esc(error.message)+"</p>";return}$("orders").innerHTML=(data||[]).map(o=>`<div class="order"><div class="row"><div><b>Order #${o.id}</b><div class="muted">${new Date(o.created_at).toLocaleString()}</div></div><select class="status" onchange="updateOrder('${o.id}',this.value)">${["new","confirmed","processing","shipped","delivered","cancelled"].map(s=>`<option ${s===o.status?"selected":""}>${s}</option>`).join("")}</select></div><p><b>مشتری:</b> ${esc(o.customer_name)} | ${esc(o.phone)}</p><p><b>پته:</b> ${esc(o.address)}</p><p><b>سپارل:</b> ${esc(o.delivery_method)}</p><p><b>ټول:</b> ${Number(o.total).toLocaleString()} افغانی</p><p>${(o.items||[]).map(i=>`${esc(i.name)} × ${i.qty}`).join("، ")}</p></div>`).join("")||"<p>تر اوسه فرمایش نشته.</p>"}
+async function updateOrder(id,status){const {error}=await sb.from("orders").update({status}).eq("id",id);if(error)alert(error.message);else toast("د فرمایش حالت بدل شو")}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function toast(msg){const e=document.createElement("div");e.className="toast";e.textContent=msg;document.body.appendChild(e);setTimeout(()=>e.remove(),2500)}
+init();
+</script></body></html>

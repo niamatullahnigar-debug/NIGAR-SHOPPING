@@ -1,0 +1,19 @@
+<!doctype html><html lang="ps" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Checkout - NIGAR</title><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script></head><body><header><a class="brand" href="index.html">NIGAR <span>SHOPPING</span></a></header><section><div class="modalBox"><p class="eyebrow">ORDER</p><h1>فرمایش ثبت کړئ</h1><div id="summary"></div><form id="orderForm"><div class="field"><label>بشپړ نوم</label><input id="name" class="forminput" required placeholder="نوم"></div><div class="field"><label>موبایل</label><input id="phone" class="forminput" required placeholder="07xxxxxxxx"></div><div class="field"><label>بشپړه پته</label><textarea id="address" class="forminput" required placeholder="ولایت، ښار، ناحیه او پته"></textarea></div><div class="field"><label>د سپارلو طریقه</label><select id="delivery" class="forminput"><option>کور ته سپارل</option><option>له دوکان څخه اخیستل</option></select></div><div class="field"><label>د پیسو طریقه</label><select id="payment" class="forminput"><option>د سپارلو پر وخت</option></select></div><button class="primary wide">فرمایش ثبت کړئ</button></form><div id="success" class="success hidden"></div></div></section><script>
+const sb=supabase.createClient(NIGAR_CONFIG.SUPABASE_URL,NIGAR_CONFIG.SUPABASE_PUBLISHABLE_KEY);
+const c=JSON.parse(localStorage.getItem("nigar_cart")||"[]");
+const summary=document.getElementById("summary");
+const total=c.reduce((s,p)=>s+Number(p.price)*p.qty,0);
+const orderForm=document.getElementById("orderForm");
+const successBox=document.getElementById("success");
+summary.innerHTML=c.length?c.map(p=>`<p>${p.name} × ${p.qty} — ${Number(p.price)*p.qty} افغانی</p>`).join("")+`<hr><h3>ټول: ${total} افغانی</h3>`:"<p>کارټ خالي دی.</p>";
+if(!c.length)document.getElementById("orderForm").style.display="none";
+orderForm.onsubmit=async e=>{
+ e.preventDefault();
+ const items=c.map(p=>({id:p.id,name:p.name,price:Number(p.price),qty:p.qty}));
+ const payload={customer_name:document.getElementById("name").value.trim(),phone:document.getElementById("phone").value.trim(),address:document.getElementById("address").value.trim(),delivery_method:document.getElementById("delivery").value,payment_method:document.getElementById("payment").value,total,items};
+ const {data,error}=await sb.from("orders").insert(payload).select("id").single();
+ if(error){alert("فرمایش ثبت نه شو: "+error.message);return}
+ localStorage.removeItem("nigar_cart"); orderForm.style.display="none";
+ successBox.classList.remove("hidden");successBox.innerHTML=`<h2>✅ فرمایش ثبت شو</h2><p>ستاسې فرمایش په بریالیتوب ثبت شو.</p><p>Order ID: <b>${data.id}</b></p><a class="primary wide" href="index.html">بېرته دوکان ته</a>`;
+};
+</script></body></html>
