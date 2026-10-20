@@ -5,7 +5,7 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&
 function saveCart(){localStorage.setItem("nigar_cart",JSON.stringify(cart));updateCart()}
 function updateCart(){const e=document.getElementById("cartCount");if(e)e.textContent=cart.reduce((s,x)=>s+x.qty,0)}
 async function loadProducts(){
-  const {data,error}=await sb.from("products").select("*").eq("active",true).order("created_at",{ascending:false});
+  constconst {data,error}=await sb.from("products").select("*").order("created_at",{ascending:false});
   if(error){console.error(error);document.getElementById("productGrid").innerHTML="<p>د محصولاتو د لوستلو ستونزه رامنځته شوه. Supabase تنظیمات وګورئ.</p>";return}
   products=data||[]; renderProducts();
 }
